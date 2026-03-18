@@ -32,7 +32,7 @@ const defaultStopSound = require('./assets/sounds/record_stop.mp3');
 
 const C = {
   bg: '#000000', surface: '#111111', border: '#232323',
-  text: '#c8c8c8', bright: '#e8e8e8', white: '#f0f0f0', muted: '#555555',
+  text: '#f0f0f0', bright: '#f0f0f0', white: '#f0f0f0', muted: '#999999',
   accent: '#4db8bd', accentDk: '#296266', error: '#ff3b5c',
 };
 const MONO = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
@@ -151,25 +151,20 @@ export default function App() {
       // Check downloaded models and load active one
       const dlModels = await WhisperManager.getDownloadedModels();
       setDownloadedModels(dlModels);
+      // Find a model to initialize (active or any downloaded)
       const active = await WhisperManager.getActiveModel();
-      if (active && dlModels[active]) {
+      const modelToLoad = (active && dlModels[active]) ? active : MODEL_NAMES.find(n => dlModels[n]);
+      if (modelToLoad) {
         try {
-          await WhisperManager.initialize(active);
+          await WhisperManager.initialize(modelToLoad);
           setModelReady(true);
           processWidgetRecordings();
-        } catch { showToast('Model init failed', true); }
-      } else {
-        // Try any downloaded model
-        const anyDownloaded = MODEL_NAMES.find(n => dlModels[n]);
-        if (anyDownloaded) {
-          try {
-            await WhisperManager.initialize(anyDownloaded);
-            setModelReady(true);
-            processWidgetRecordings();
-          } catch { showToast('Model init failed', true); }
+        } catch {
+          // Model file may be corrupted — don't scare the user
+          showToast('Tap Settings to re-download your voice model');
         }
-        // No model at all — user needs to download in settings
       }
+      // No model downloaded — fresh install, onboarding will handle it
     })();
   }, []);
 
@@ -634,9 +629,9 @@ export default function App() {
   const renderSettings = () => {
     const currentModel = WhisperManager.getCurrentModel();
     return (
-      <Modal visible={settingsVisible} animationType="slide" transparent={false} onRequestClose={() => setSettingsVisible(false)}>
-        <SafeAreaView style={s.container}><StatusBar style="light" />
-          <ScrollView contentContainerStyle={{ padding: 24 }}>
+      <Modal visible={settingsVisible} animationType="slide" transparent={false} statusBarTranslucent={true} onRequestClose={() => setSettingsVisible(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}><StatusBar style="light" />
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 24, paddingBottom: 80 }} bounces={true} showsVerticalScrollIndicator={true} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Settings</Text>
               <TouchableOpacity onPress={() => setSettingsVisible(false)} style={s.doneBtn}><Text style={s.doneBtnTxt}>Done</Text></TouchableOpacity>
@@ -791,9 +786,15 @@ export default function App() {
                 <View style={s.sRow}><Text style={s.sKey}>Status</Text>
                   <Text style={[s.sVal, { color: offlineMode ? C.muted : serverOnline ? C.accent : C.error }]}>{offlineMode ? 'Disconnected' : serverOnline ? 'Online' : 'Offline'}</Text></View>
                 {!offlineMode && <View style={s.sRow}><Text style={s.sKey}>Pending sync</Text><Text style={s.sVal}>{syncStatus.pending || 0}</Text></View>}
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ fontFamily: MONO, fontSize: 12, color: C.muted, lineHeight: 18, marginBottom: 6 }}>Set up your own BunNotes server for better transcription accuracy with GPU acceleration.</Text>
+                  <TouchableOpacity onPress={() => Linking.openURL('https://github.com/EndreEndi/BunNotes')}>
+                    <Text style={{ fontFamily: MONO, fontSize: 13, color: C.accent }}>Server setup guide on GitHub {'\u2192'}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
-            <View style={{ height: 40 }} />
+            <View style={{ height: 60 }} />
           </ScrollView>
         </SafeAreaView>
       </Modal>

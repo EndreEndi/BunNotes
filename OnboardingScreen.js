@@ -12,7 +12,7 @@ const bunnyLogo = require('./assets/icon.png');
 
 const C = {
   bg: '#000000', surface: '#111111', border: '#232323',
-  text: '#c8c8c8', bright: '#e8e8e8', white: '#f0f0f0', muted: '#555555',
+  text: '#f0f0f0', bright: '#f0f0f0', white: '#f0f0f0', muted: '#999999',
   accent: '#4db8bd', accentDk: '#296266', error: '#ff3b5c',
 };
 const MONO = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
