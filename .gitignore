@@ -1,0 +1,25 @@
+node_modules/
+android/
+ios/
+.expo/
+dist/
+web-build/
+*.keystore
+keystore.properties
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+npm-debug.*
+.env
+.env.*
+
+# Server
+server/venv/
+server/__pycache__/
+
+# Build artifacts
+*.apk
+*.aab

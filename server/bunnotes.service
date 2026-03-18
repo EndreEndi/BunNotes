@@ -1,0 +1,16 @@
+[Unit]
+Description=WhisperNotes Server — re-transcription + Obsidian save
+After=network.target
+
+[Service]
+Type=simple
+User=endi
+WorkingDirectory=/opt/whisper-notes-server
+ExecStart=/opt/whisper-notes-server/venv/bin/python -m uvicorn server:app --host 0.0.0.0 --port 8642
+Restart=on-failure
+RestartSec=5
+SupplementaryGroups=video render
+Environment=HOME=/home/endi
+
+[Install]
+WantedBy=multi-user.target

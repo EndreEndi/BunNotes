@@ -1,0 +1,31 @@
+{
+  "name": "bunnotes",
+  "version": "2.0.0",
+  "main": "expo/AppEntry",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "prebuild": "expo prebuild",
+    "build:apk": "cd android && ./gradlew assembleRelease"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "2.1.0",
+    "expo": "~52.0.0",
+    "expo-asset": "~11.0.0",
+    "expo-av": "~15.0.0",
+    "expo-document-picker": "~13.0.3",
+    "expo-file-system": "~18.0.0",
+    "expo-haptics": "~14.0.0",
+    "expo-splash-screen": "~0.29.24",
+    "expo-status-bar": "~2.0.0",
+    "react": "18.3.1",
+    "react-native": "0.76.6",
+    "react-native-safe-area-context": "~4.14.0",
+    "whisper.rn": "^0.4.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0"
+  },
+  "private": true
+}
