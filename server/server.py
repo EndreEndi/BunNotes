@@ -35,16 +35,17 @@ async def health():
     return JSONResponse({"status": "ok", "model": WHISPER_MODEL_SIZE, "device": WHISPER_DEVICE})
 
 
-def do_transcribe(audio_bytes: bytes) -> dict:
+def do_transcribe(audio_bytes: bytes, language: str | None = None) -> dict:
     tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
     tmp.write(audio_bytes)
     tmp.close()
     try:
         segments, info = model.transcribe(
-            tmp.name, beam_size=5, language="en",
+            tmp.name, beam_size=5, language=language,
             vad_filter=True, vad_parameters=dict(min_silence_duration_ms=500),
         )
-        return {"text": " ".join(seg.text.strip() for seg in segments).strip()}
+        text = " ".join(seg.text.strip() for seg in segments).strip()
+        return {"text": text, "language": info.language if info else language}
     finally:
         os.unlink(tmp.name)
 
@@ -53,10 +54,12 @@ def do_transcribe(audio_bytes: bytes) -> dict:
 async def api_transcribe(
     audio: UploadFile = File(...),
     x_local_transcript: str = Header(default="", alias="X-Local-Transcript"),
+    x_detected_language: str = Header(default="auto", alias="X-Detected-Language"),
 ):
+    lang = None if x_detected_language in ("auto", "") else x_detected_language
     audio_bytes = await audio.read()
     loop = asyncio.get_event_loop()
-    return JSONResponse(await loop.run_in_executor(None, do_transcribe, audio_bytes))
+    return JSONResponse(await loop.run_in_executor(None, do_transcribe, audio_bytes, lang))
 
 
 @app.post("/api/save")

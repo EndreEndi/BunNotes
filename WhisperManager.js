@@ -100,22 +100,35 @@ class WhisperManager {
     await this.setActiveModel(name);
   }
 
-  async transcribe(audioPath) {
-    if (!this.context || !this.modelReady) throw new Error('Whisper not initialized');
-    const { promise } = this.context.transcribe(audioPath, {
-      language: 'en', maxLen: 0, translate: false,
-    });
-    const result = await promise;
-    return { text: result.result?.trim() || '', segments: result.segments || [] };
+  _buildOpts(language) {
+    const opts = { maxLen: 0, translate: false };
+    if (language) {
+      opts.language = language;
+      if (language === 'ro') {
+        opts.prompt = 'Aceasta este o transcriere în limba română cu diacritice corecte: ă, â, î, ș, ț. Vorbesc clar și natural despre diverse subiecte.';
+        opts.beamSize = 5;
+        opts.wordTimestamps = false;
+      } else if (language === 'en') {
+        opts.prompt = 'This is a clear English voice recording transcribed accurately with proper punctuation and capitalization.';
+      }
+    }
+    return opts;
   }
 
-  async startRealtimeTranscribe(audioOutputPath) {
+  async transcribe(audioPath, language) {
+    if (!this.context || !this.modelReady) throw new Error('Whisper not initialized');
+    const opts = this._buildOpts(language);
+    const { promise } = this.context.transcribe(audioPath, opts);
+    const result = await promise;
+    return { text: result.result?.trim() || '', segments: result.segments || [], language: result.language || language };
+  }
+
+  async startRealtimeTranscribe(audioOutputPath, language) {
     if (!this.context || !this.modelReady) throw new Error('Whisper not initialized');
     this._realtimeAudioPath = audioOutputPath;
-    const { stop, subscribe } = await this.context.transcribeRealtime({
-      maxLen: 0, translate: false, language: 'en', audioOutputPath,
-      realtimeAudioSec: 120, realtimeAudioSliceSec: 60, realtimeAudioMinSec: 1,
-    });
+    this._realtimeLanguage = language;
+    const opts = { ...this._buildOpts(language), audioOutputPath, realtimeAudioSec: 120, realtimeAudioSliceSec: 60, realtimeAudioMinSec: 1 };
+    const { stop, subscribe } = await this.context.transcribeRealtime(opts);
     this._realtimeStop = stop;
     this._realtimePromise = new Promise((resolve) => {
       subscribe((event) => { if (!event.isCapturing) resolve(); });
@@ -126,12 +139,12 @@ class WhisperManager {
     if (this._realtimeStop) { await this._realtimeStop(); this._realtimeStop = null; }
     if (this._realtimePromise) { await this._realtimePromise; this._realtimePromise = null; }
     const audioPath = this._realtimeAudioPath;
+    const language = this._realtimeLanguage;
     try {
-      const { promise } = this.context.transcribe(audioPath, {
-        language: 'en', maxLen: 0, translate: false,
-      });
+      const opts = this._buildOpts(language);
+      const { promise } = this.context.transcribe(audioPath, opts);
       const result = await promise;
-      return { text: result.result?.trim() || '', segments: result.segments || [], audioPath };
+      return { text: result.result?.trim() || '', segments: result.segments || [], audioPath, language: result.language || language };
     } catch {
       return { text: '', segments: [], audioPath };
     }
