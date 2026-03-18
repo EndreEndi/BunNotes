@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet,
   Keyboard, Platform, AppState, ActivityIndicator, Linking,
-  Image, Modal, FlatList, RefreshControl, PermissionsAndroid,
+  Image, Modal, FlatList, RefreshControl, PermissionsAndroid, BackHandler,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
@@ -205,6 +205,18 @@ export default function App() {
     });
     return () => sub.remove();
   }, [serverUrl, offlineMode, modelReady]);
+
+  // -------------------------------------------------------------------------
+  // Back handler for settings overlay
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (!settingsVisible) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setSettingsVisible(false);
+      return true;
+    });
+    return () => sub.remove();
+  }, [settingsVisible]);
 
   // -------------------------------------------------------------------------
   // Helpers
@@ -627,11 +639,17 @@ export default function App() {
   // Settings
   // -------------------------------------------------------------------------
   const renderSettings = () => {
+    if (!settingsVisible) return null;
     const currentModel = WhisperManager.getCurrentModel();
     return (
-      <Modal visible={settingsVisible} animationType="slide" transparent={false} statusBarTranslucent={true} onRequestClose={() => setSettingsVisible(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}><StatusBar style="light" />
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 24, paddingBottom: 80 }} bounces={true} showsVerticalScrollIndicator={true} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: C.bg, zIndex: 999 }}>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: 24, paddingTop: Platform.OS === 'android' ? 40 : 24, paddingBottom: 60 }}
+            showsVerticalScrollIndicator={true}
+            bounces={true}
+            removeClippedSubviews={true}
+          >
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Settings</Text>
               <TouchableOpacity onPress={() => setSettingsVisible(false)} style={s.doneBtn}><Text style={s.doneBtnTxt}>Done</Text></TouchableOpacity>
@@ -796,8 +814,7 @@ export default function App() {
             )}
             <View style={{ height: 60 }} />
           </ScrollView>
-        </SafeAreaView>
-      </Modal>
+        </View>
     );
   };
 

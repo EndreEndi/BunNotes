@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, Image, Animated,
+  View, Text, TouchableOpacity, Image, Animated, ScrollView,
   StyleSheet, Platform, Linking,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -91,6 +91,7 @@ export default function OnboardingScreen({ onComplete }) {
     <View style={os.container}>
       <StatusBar style="light" />
       <Animated.View style={[os.content, { opacity: fadeAnim }]}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 32, paddingBottom: 40 }} showsVerticalScrollIndicator={false} bounces={true}>
         {screen === 0 && (
           <View style={os.center}>
             <Image source={bunnyLogo} style={os.logo} />
@@ -206,6 +207,7 @@ export default function OnboardingScreen({ onComplete }) {
             </TouchableOpacity>
           </View>
         )}
+        </ScrollView>
       </Animated.View>
 
       {renderDots()}
@@ -219,7 +221,7 @@ export default function OnboardingScreen({ onComplete }) {
 
 const os = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-  content: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
+  content: { flex: 1 },
   center: { alignItems: 'center' },
   logo: { width: 100, height: 100, borderRadius: 24, marginBottom: 24 },
   title: { fontSize: 24, fontWeight: '700', color: C.white, textAlign: 'center', marginBottom: 12 },
