@@ -137,6 +137,7 @@ export default function OnboardingScreen({ onComplete }) {
             <Text style={os.title}>Download Voice Model</Text>
             <Text style={os.desc}>
               BunNotes uses AI to turn your voice into text, right on your phone.
+              Supports English & Romanian.
             </Text>
             {MODEL_NAMES.map(name => {
               const m = MODELS[name];

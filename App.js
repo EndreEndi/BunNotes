@@ -71,6 +71,7 @@ export default function App() {
   const [onboardingDone, setOnboardingDone] = useState(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [serverExpanded, setServerExpanded] = useState(false);
+  const [transLanguage, setTransLanguage] = useState('auto');
 
   const playbackRef = useRef(null);
   const pendingAutoRecord = useRef(false);
@@ -132,6 +133,8 @@ export default function App() {
         if (ss) { setStartSoundPath(ss); setStartSoundName(ssn); }
         if (se) { setStopSoundPath(se); setStopSoundName(sen); }
         if (om === 'true') setOfflineMode(true);
+        const lang = await AsyncStorage.getItem('transcription_language');
+        if (lang) setTransLanguage(lang);
       } catch {}
 
       // Server
@@ -266,7 +269,7 @@ export default function App() {
         await FileSystem.copyAsync({ from: srcUri, to: savedAudioPath });
       } catch { savedAudioPath = null; }
     }
-    const item = { id, text, title: genTitle(text), createdAt: new Date().toISOString(), synced: !!serverUrl, audioPath: savedAudioPath };
+    const item = { id, text, title: genTitle(text), createdAt: new Date().toISOString(), synced: !!serverUrl, audioPath: savedAudioPath, language: transLanguage === 'auto' ? null : transLanguage };
     const updated = [item, ...notes].slice(0, 200);
     await persistNotes(updated);
     return item;
@@ -552,7 +555,8 @@ export default function App() {
       const audioDir = FileSystem.documentDirectory + 'recordings/';
       await FileSystem.makeDirectoryAsync(audioDir, { intermediates: true });
       const audioPath = audioDir.replace('file://', '') + `voice-note-${timestamp}.wav`;
-      await WhisperManager.startRealtimeTranscribe(audioPath);
+      const langHint = transLanguage === 'auto' ? undefined : transLanguage;
+      await WhisperManager.startRealtimeTranscribe(audioPath, langHint);
       recordingRef.current = true; setRecording(true); setSeconds(0);
       timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -571,12 +575,15 @@ export default function App() {
       const result = await WhisperManager.stopRealtimeTranscribe();
       if (result.text) {
         const isFirstNote = notes.length === 0;
+        const detectedLang = result.language || (transLanguage === 'auto' ? null : transLanguage);
         const note = await addNote(result.text, result.audioPath);
+        if (note) note.language = detectedLang;
         if (autoSave && saveFolderUri && note) { try { await saveNoteToFolder(note); } catch {} }
         if (isFirstNote) { setShowCelebration(true); setTimeout(() => setShowCelebration(false), 2500); }
         showToast('Note saved');
+        const syncLang = detectedLang || 'auto';
         if (serverUrl && result.audioPath && !offlineMode) {
-          try { SyncManager.setServerUrl(serverUrl); await SyncManager.queueForSync('file://' + result.audioPath, result.text, 'en'); setSyncStatus(await SyncManager.getStatus()); } catch {}
+          try { SyncManager.setServerUrl(serverUrl); await SyncManager.queueForSync('file://' + result.audioPath, result.text, syncLang); setSyncStatus(await SyncManager.getStatus()); } catch {}
         }
       } else { showToast('No speech detected'); }
     } catch { showToast("Couldn't understand the audio. Try speaking more clearly", true); }
@@ -679,6 +686,27 @@ export default function App() {
             })}
 
             <View style={s.divider} />
+            <Text style={s.sLabel}>Language</Text>
+            <Text style={s.sDesc}>Choose the language for voice transcription, or let BunNotes detect it automatically.</Text>
+            {[{ key: 'auto', label: 'Auto-detect' }, { key: 'en', label: 'English' }, { key: 'ro', label: 'Romanian' }].map(opt => (
+              <TouchableOpacity key={opt.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 }}
+                onPress={async () => { setTransLanguage(opt.key); await AsyncStorage.setItem('transcription_language', opt.key); }}>
+                <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: transLanguage === opt.key ? C.accent : C.muted, justifyContent: 'center', alignItems: 'center' }}>
+                  {transLanguage === opt.key && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: C.accent }} />}
+                </View>
+                <Text style={{ fontFamily: MONO, fontSize: 14, color: transLanguage === opt.key ? C.accent : C.text }}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+            {transLanguage === 'ro' && currentModel !== 'small' && (
+              <View style={{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.accent, borderRadius: 10, padding: 12, marginTop: 8 }}>
+                <Text style={{ fontFamily: MONO, fontSize: 12, color: C.text, marginBottom: 8 }}>For best Romanian results, use the Small model (466 MB)</Text>
+                <TouchableOpacity style={[s.tealBtn, { paddingVertical: 10, marginBottom: 0 }]} onPress={() => downloadAndActivateModel('small')}>
+                  <Text style={[s.tealBtnTxt, { fontSize: 12 }]}>Upgrade to Small</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <View style={s.divider} />
             <Text style={s.sLabel}>Save Folder</Text>
             <Text style={s.sDesc}>Save notes as markdown files to a folder on your device.</Text>
             <View style={s.sRow}><Text style={s.sKey}>Folder</Text><Text style={[s.sVal, { maxWidth: 160 }]} numberOfLines={1}>{saveFolderName || 'Not set'}</Text></View>
@@ -733,6 +761,7 @@ export default function App() {
             <Text style={s.sLabel}>About</Text>
             <Text style={{ fontFamily: MONO, fontSize: 14, color: C.bright, marginBottom: 4 }}>BunNotes v2.0.0</Text>
             <Text style={{ fontFamily: MONO, fontSize: 12, color: C.muted, lineHeight: 20, marginBottom: 8 }}>On-device voice transcription{'\n'}powered by whisper.cpp</Text>
+            <Text style={{ fontFamily: MONO, fontSize: 11, color: C.muted, lineHeight: 18, marginBottom: 8 }}>BunNotes can also be used as a live captioning tool for deaf and hard-of-hearing users.</Text>
             <TouchableOpacity onPress={() => Linking.openURL('https://endreendi.com')} style={{ marginBottom: 6 }}>
               <Text style={{ fontFamily: MONO, fontSize: 13, color: C.accent }}>Made by EndreEndi</Text>
             </TouchableOpacity>
@@ -815,7 +844,10 @@ export default function App() {
                 <View style={s.noteTop}>
                   <View style={{ flex: 1 }}>
                     <Text style={s.noteTitle} numberOfLines={1}>{item.title || 'New Recording'}</Text>
-                    <Text style={[s.noteDate, { marginTop: 3 }]}>{fmtDate(item.createdAt)}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                      <Text style={s.noteDate}>{fmtDate(item.createdAt)}</Text>
+                      {transLanguage === 'auto' && item.language && <Text style={{ fontFamily: MONO, fontSize: 9, color: C.accent, backgroundColor: C.surface, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3, overflow: 'hidden' }}>{item.language.toUpperCase()}</Text>}
+                    </View>
                   </View>
                   {expanded && (
                     <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
