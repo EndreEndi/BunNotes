@@ -21,6 +21,7 @@ export default function OnboardingScreen({ onComplete }) {
   const [screen, setScreen] = useState(0);
   const [micGranted, setMicGranted] = useState(false);
   const [micDenied, setMicDenied] = useState(false);
+  const [selectedLang, setSelectedLang] = useState('en');
   const [selectedModel, setSelectedModel] = useState('base');
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -45,7 +46,7 @@ export default function OnboardingScreen({ onComplete }) {
       const perm = await Audio.requestPermissionsAsync();
       if (perm.granted) {
         setMicGranted(true);
-        setTimeout(() => transition(2), 600);
+        setTimeout(() => transition(2), 600);  // → Language screen
       } else {
         setMicDenied(true);
       }
@@ -66,7 +67,7 @@ export default function OnboardingScreen({ onComplete }) {
       await WhisperManager.initialize(selectedModel);
       setModelReady(true);
       setDownloading(false);
-      setTimeout(() => transition(3), 600);
+      setTimeout(() => transition(4), 600);  // → All set screen
     } catch {
       setDownloading(false);
       setDownloadProgress(0);
@@ -79,9 +80,16 @@ export default function OnboardingScreen({ onComplete }) {
     onComplete();
   };
 
+  const selectLanguage = async (lang) => {
+    setSelectedLang(lang);
+    await AsyncStorage.setItem('transcription_language', lang);
+    if (lang === 'ro') setSelectedModel('small');
+    setTimeout(() => transition(3), 400);  // → Model screen
+  };
+
   const renderDots = () => (
     <View style={os.dots}>
-      {[0, 1, 2, 3].map(i => (
+      {[0, 1, 2, 3, 4].map(i => (
         <View key={i} style={[os.dot, i === screen && os.dotActive]} />
       ))}
     </View>
@@ -134,6 +142,22 @@ export default function OnboardingScreen({ onComplete }) {
         )}
 
         {screen === 2 && (
+          <View style={os.center}>
+            <Text style={os.title}>Choose Language</Text>
+            <Text style={os.desc}>What language will you speak?</Text>
+            <TouchableOpacity style={[os.langCard, selectedLang === 'en' && os.langCardActive]} onPress={() => selectLanguage('en')}>
+              <Text style={{ fontSize: 32 }}>{'\uD83C\uDDEC\uD83C\uDDE7'}</Text>
+              <Text style={[os.langLabel, selectedLang === 'en' && { color: C.accent }]}>English</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[os.langCard, selectedLang === 'ro' && os.langCardActive]} onPress={() => selectLanguage('ro')}>
+              <Text style={{ fontSize: 32 }}>{'\uD83C\uDDF7\uD83C\uDDF4'}</Text>
+              <Text style={[os.langLabel, selectedLang === 'ro' && { color: C.accent }]}>Română</Text>
+            </TouchableOpacity>
+            <Text style={[os.desc, { fontSize: 12, marginTop: 16 }]}>You can change this anytime in Settings</Text>
+          </View>
+        )}
+
+        {screen === 3 && (
           <View style={os.center}>
             <Text style={os.title}>Download Voice Model</Text>
             <Text style={os.desc}>
@@ -194,7 +218,7 @@ export default function OnboardingScreen({ onComplete }) {
           </View>
         )}
 
-        {screen === 3 && (
+        {screen === 4 && (
           <View style={os.center}>
             <Image source={bunnyLogo} style={os.logo} />
             <Text style={os.title}>You're all set!</Text>
@@ -234,6 +258,9 @@ const os = StyleSheet.create({
   dotActive: { backgroundColor: C.accent, width: 24 },
   skipBtn: { position: 'absolute', bottom: 44, alignSelf: 'center' },
   skipTxt: { fontFamily: MONO, fontSize: 13, color: C.muted },
+  langCard: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 14, padding: 18, marginTop: 12 },
+  langCardActive: { borderColor: C.accent, borderWidth: 2 },
+  langLabel: { fontFamily: MONO, fontSize: 18, fontWeight: '600', color: C.bright },
   modelCard: { width: '100%', backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 12, padding: 14, marginTop: 10 },
   modelSelected: { borderColor: C.accent, borderWidth: 2 },
   modelName: { fontFamily: MONO, fontSize: 14, fontWeight: '600', color: C.bright },
