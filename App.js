@@ -71,7 +71,7 @@ export default function App() {
   const [onboardingDone, setOnboardingDone] = useState(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [serverExpanded, setServerExpanded] = useState(false);
-  const [transLanguage, setTransLanguage] = useState('auto');
+  const [transLanguage, setTransLanguage] = useState('en');
 
   const playbackRef = useRef(null);
   const pendingAutoRecord = useRef(false);
@@ -276,7 +276,7 @@ export default function App() {
         await FileSystem.copyAsync({ from: srcUri, to: savedAudioPath });
       } catch { savedAudioPath = null; }
     }
-    const item = { id, text, title: genTitle(text), createdAt: new Date().toISOString(), synced: !!serverUrl, audioPath: savedAudioPath, language: transLanguage === 'auto' ? null : transLanguage };
+    const item = { id, text, title: genTitle(text), createdAt: new Date().toISOString(), synced: !!serverUrl, audioPath: savedAudioPath, language: transLanguage };
     const updated = [item, ...notes].slice(0, 200);
     await persistNotes(updated);
     return item;
@@ -562,8 +562,7 @@ export default function App() {
       const audioDir = FileSystem.documentDirectory + 'recordings/';
       await FileSystem.makeDirectoryAsync(audioDir, { intermediates: true });
       const audioPath = audioDir.replace('file://', '') + `voice-note-${timestamp}.wav`;
-      const langHint = transLanguage === 'auto' ? undefined : transLanguage;
-      await WhisperManager.startRealtimeTranscribe(audioPath, langHint);
+      await WhisperManager.startRealtimeTranscribe(audioPath, transLanguage);
       recordingRef.current = true; setRecording(true); setSeconds(0);
       timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -582,13 +581,13 @@ export default function App() {
       const result = await WhisperManager.stopRealtimeTranscribe();
       if (result.text) {
         const isFirstNote = notes.length === 0;
-        const detectedLang = result.language || (transLanguage === 'auto' ? null : transLanguage);
+        const detectedLang = transLanguage;
         const note = await addNote(result.text, result.audioPath);
         if (note) note.language = detectedLang;
         if (autoSave && saveFolderUri && note) { try { await saveNoteToFolder(note); } catch {} }
         if (isFirstNote) { setShowCelebration(true); setTimeout(() => setShowCelebration(false), 2500); }
         showToast('Note saved');
-        const syncLang = detectedLang || 'auto';
+        const syncLang = detectedLang || 'en';
         if (serverUrl && result.audioPath && !offlineMode) {
           try { SyncManager.setServerUrl(serverUrl); await SyncManager.queueForSync('file://' + result.audioPath, result.text, syncLang); setSyncStatus(await SyncManager.getStatus()); } catch {}
         }
@@ -701,7 +700,7 @@ export default function App() {
             <View style={s.divider} />
             <Text style={s.sLabel}>Language</Text>
             <Text style={s.sDesc}>Choose the language for voice transcription, or let BunNotes detect it automatically.</Text>
-            {[{ key: 'auto', label: 'Auto-detect' }, { key: 'en', label: 'English' }, { key: 'ro', label: 'Romanian' }].map(opt => (
+            {[{ key: 'en', label: 'English' }, { key: 'ro', label: 'Romanian' }].map(opt => (
               <TouchableOpacity key={opt.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 }}
                 onPress={async () => { setTransLanguage(opt.key); await AsyncStorage.setItem('transcription_language', opt.key); }}>
                 <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: transLanguage === opt.key ? C.accent : C.muted, justifyContent: 'center', alignItems: 'center' }}>
@@ -836,6 +835,16 @@ export default function App() {
           <Text style={s.headerTitle}><Text style={{ color: C.accent }}>Bun</Text>Notes</Text>
         </View>
         <View style={s.headerRight}>
+          <View style={{ flexDirection: 'row', backgroundColor: C.surface, borderRadius: 8, overflow: 'hidden', marginRight: 4 }}>
+            <TouchableOpacity onPress={async () => { setTransLanguage('en'); await AsyncStorage.setItem('transcription_language', 'en'); }}
+              style={{ paddingHorizontal: 10, paddingVertical: 5, backgroundColor: transLanguage === 'en' ? C.accent : 'transparent' }}>
+              <Text style={{ fontFamily: MONO, fontSize: 11, fontWeight: '700', color: transLanguage === 'en' ? '#000' : C.muted }}>EN</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={async () => { setTransLanguage('ro'); await AsyncStorage.setItem('transcription_language', 'ro'); }}
+              style={{ paddingHorizontal: 10, paddingVertical: 5, backgroundColor: transLanguage === 'ro' ? C.accent : 'transparent' }}>
+              <Text style={{ fontFamily: MONO, fontSize: 11, fontWeight: '700', color: transLanguage === 'ro' ? '#000' : C.muted }}>RO</Text>
+            </TouchableOpacity>
+          </View>
           {!offlineMode && <View style={[s.dot, serverOnline ? s.dotOn : s.dotOff]} />}
           {!offlineMode && syncStatus.pending > 0 && <View style={s.badge}><Text style={s.badgeTxt}>{syncStatus.pending}</Text></View>}
           <TouchableOpacity onPress={() => { setSettingsVisible(true); calcAudioStorage(); }} style={{ padding: 6 }}>
@@ -864,7 +873,7 @@ export default function App() {
                     <Text style={s.noteTitle} numberOfLines={1}>{item.title || 'New Recording'}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
                       <Text style={s.noteDate}>{fmtDate(item.createdAt)}</Text>
-                      {transLanguage === 'auto' && item.language && <Text style={{ fontFamily: MONO, fontSize: 9, color: C.accent, backgroundColor: C.surface, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3, overflow: 'hidden' }}>{item.language.toUpperCase()}</Text>}
+                      {item.language && <Text style={{ fontFamily: MONO, fontSize: 9, color: C.accent, backgroundColor: C.surface, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3, overflow: 'hidden' }}>{item.language.toUpperCase()}</Text>}
                     </View>
                   </View>
                   {expanded && (
@@ -913,7 +922,7 @@ export default function App() {
           <>
             <View style={s.bottomSideBtn} />
             <View style={[s.recBtn, { opacity: 0.5 }]}><ActivityIndicator color="#000" size="small" /></View>
-            <Text style={[s.recTimer, { color: C.muted }]}>...</Text>
+            <View style={s.bottomSideBtn} />
           </>
         ) : (
           <>
@@ -968,7 +977,7 @@ const s = StyleSheet.create({
   recBtn: { width: 68, height: 68, borderRadius: 34, backgroundColor: C.accent, justifyContent: 'center', alignItems: 'center', shadowColor: C.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 10 },
   recDot: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#000', opacity: 0.2 },
   stopSquare: { width: 22, height: 22, borderRadius: 4, backgroundColor: '#fff' },
-  recTimer: { fontFamily: MONO, fontSize: 14, fontWeight: '600', color: C.error, width: 40, textAlign: 'center' },
+  recTimer: { fontFamily: MONO, fontSize: 14, fontWeight: '600', color: C.error, minWidth: 50, textAlign: 'center' },
   toast: { position: 'absolute', bottom: 110, alignSelf: 'center', backgroundColor: C.surface, borderWidth: 1, borderColor: C.accent, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
   toastErr: { borderColor: C.error },
   toastTxt: { fontFamily: MONO, fontSize: 13, color: C.accent },

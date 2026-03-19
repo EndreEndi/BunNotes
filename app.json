@@ -2,7 +2,7 @@
   "expo": {
     "name": "BunNotes",
     "slug": "bunnotes",
-    "version": "1.0.1",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",

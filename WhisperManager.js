@@ -101,16 +101,14 @@ class WhisperManager {
   }
 
   _buildOpts(language) {
-    const opts = { maxLen: 0, translate: false };
-    if (language) {
-      opts.language = language;
-      if (language === 'ro') {
-        opts.prompt = 'Aceasta este o transcriere în limba română cu diacritice corecte: ă, â, î, ș, ț. Vorbesc clar și natural despre diverse subiecte.';
-        opts.beamSize = 5;
-        opts.wordTimestamps = false;
-      } else if (language === 'en') {
-        opts.prompt = 'This is a clear English voice recording transcribed accurately with proper punctuation and capitalization.';
-      }
+    const lang = language || 'en';
+    const opts = { maxLen: 0, translate: false, language: lang };
+    if (lang === 'ro') {
+      opts.prompt = 'Aceasta este o transcriere în limba română cu diacritice corecte: ă, â, î, ș, ț.';
+      opts.beamSize = 5;
+      opts.wordTimestamps = false;
+    } else {
+      opts.prompt = 'Clear English transcription with proper punctuation.';
     }
     return opts;
   }
