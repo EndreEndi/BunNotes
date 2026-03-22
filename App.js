@@ -771,7 +771,7 @@ export default function App() {
 
             <View style={s.divider} />
             <Text style={s.sLabel}>About</Text>
-            <Text style={{ fontFamily: MONO, fontSize: 14, color: C.bright, marginBottom: 4 }}>BunNotes v1.1.3</Text>
+            <Text style={{ fontFamily: MONO, fontSize: 14, color: C.bright, marginBottom: 4 }}>BunNotes v1.1.4</Text>
             <Text style={{ fontFamily: MONO, fontSize: 12, color: C.muted, lineHeight: 20, marginBottom: 8 }}>On-device voice transcription{'\n'}powered by whisper.cpp</Text>
             <Text style={{ fontFamily: MONO, fontSize: 11, color: C.muted, lineHeight: 18, marginBottom: 8 }}>BunNotes can also be used as a live captioning tool for deaf and hard-of-hearing users.</Text>
             <TouchableOpacity onPress={() => Linking.openURL('https://endreendi.com')} style={{ marginBottom: 6 }}>
@@ -972,7 +972,7 @@ const s = StyleSheet.create({
   noteDate: { fontSize: 13, color: C.muted },
   noteBody: { fontSize: 14, lineHeight: 22, color: C.text, marginTop: 10 },
   separator: { height: 1, backgroundColor: C.border, marginHorizontal: 20 },
-  bottomBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingBottom: 24, paddingTop: 12, gap: 20 },
+  bottomBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingBottom: 24, paddingTop: 12, gap: 20, backgroundColor: C.bg },
   bottomSideBtn: { width: 40, alignItems: 'center', justifyContent: 'center' },
   recBtn: { width: 68, height: 68, borderRadius: 34, backgroundColor: C.accent, justifyContent: 'center', alignItems: 'center', shadowColor: C.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 10 },
   recDot: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#000', opacity: 0.2 },
