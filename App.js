@@ -771,7 +771,7 @@ export default function App() {
 
             <View style={s.divider} />
             <Text style={s.sLabel}>About</Text>
-            <Text style={{ fontFamily: MONO, fontSize: 14, color: C.bright, marginBottom: 4 }}>BunNotes v2.0.0</Text>
+            <Text style={{ fontFamily: MONO, fontSize: 14, color: C.bright, marginBottom: 4 }}>BunNotes v1.1.3</Text>
             <Text style={{ fontFamily: MONO, fontSize: 12, color: C.muted, lineHeight: 20, marginBottom: 8 }}>On-device voice transcription{'\n'}powered by whisper.cpp</Text>
             <Text style={{ fontFamily: MONO, fontSize: 11, color: C.muted, lineHeight: 18, marginBottom: 8 }}>BunNotes can also be used as a live captioning tool for deaf and hard-of-hearing users.</Text>
             <TouchableOpacity onPress={() => Linking.openURL('https://endreendi.com')} style={{ marginBottom: 6 }}>
